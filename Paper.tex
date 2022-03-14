@@ -1,0 +1,193 @@
+\documentclass{article}
+
+% Docoment-wide setting go in here %
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{algxpar}
+
+\definecolor{backgroundcolor}{rgb}{0.9,0.9,0.8}
+\definecolor{commentcolor}{rgb}{0,0.6,0}
+\definecolor{keywordscolor}{rgb}{0.58,0,0.82}
+
+\lstdefinestyle{codeblock}{
+    backgroundcolor=\color{backgroundcolor},
+    commentstyle=\color{commentcolor},
+    keywordstyle=\color{keywordscolor},
+    numberstyle=\tiny,
+    stringstyle=\color{magenta},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,
+    breaklines=true,
+    captionpos=b,
+    keepspaces=true,
+    numbers=left,
+    numbersep=5pt,
+    showspaces=false,
+    showstringspaces=false,
+    showtabs=false,
+    tabsize=2
+}
+
+\newcommand{\upperbound}[1]{
+    \textbf{O(}#1\textbf{)}
+}
+
+\newcommand{\lowerbound}[1]{
+    \textbf{$\Omega$(}#1\textbf{)}
+}
+
+\newcommand{\implementation}[3]{
+    \textbf{#1:}
+    #2
+    \textit{#3}
+}
+
+\newcommand{\implementationfromfile}[3]{
+    \lstset{style=codeblock}
+    \implementation{#1}{\lstinputlisting[language=#1]{#2}}{#3}
+}
+
+\newcommand{\variable}[1]{
+    \textit{\textbf{#1}}
+}
+%----------------------------------%
+
+\begin{document}
+    % Title page %
+    \title{\textbf{Countinsort}}
+    \author{Florian Rehm}
+    \maketitle
+    \newpage
+    % The actual document starts here %
+    \begin{abstract}
+        \textit{
+            When it comes to sorting elements - in this case numerical values - most of the time we
+            lack a lot of information to reach a good overall performance. When we know the maximum key value in
+            our list of elements as well as the number of elements we can employ an implementation of Countinsort
+            to get them sorted. It basically counts the occurences of each key value and exploits these counts
+            as pointers to their final position. Deeper analysis shows that in general the runtime is \textbf{linear}
+            upon the number of elements but we can easily produce edge-cases where the overall runtime explodes.
+        }
+    \end{abstract}
+    \newpage
+    \tableofcontents
+    \newpage
+    \section{Problem and Motivation}
+        Sorting elements topologically is a problem that we are facing in many different situations. A popular example would be sorting contestants in a leaderboard. Depending on the application we want to - and sometimes even must - aim for the best runtime complexity. We do not want to wait another season to determine the winner of a football-match, do we? Since we have to touch every element at least once we can already tell that we have \lowerbound{n} as our lower boundary in sorting. One way to reach that runtime is an implementation of \textbf{Countingsort}.
+    \newpage
+    \section{Solution}
+        \subsection{Overview}
+        In order for \textbf{Countingsort} to work we assume that our input only consists of numbers; more specifically
+        positive integer values. The reason for this comes clear in \textit{\textbf{Phase 2}}. In total the algorithm
+        consists of three phases.
+        
+        \subsection{Phase 1 \textit{(Counting-phase)}}
+        This phase is pretty straight forward. We simply go over all our elements and count their occurence. For that we introduce a counting array\variable{Counts} which employs a length of \textbf{k} where \textbf{k} is the
+        maximum value a key employed in our input. \textbf{Side note:} Even if unknown finding the maximum key only takes at most \textbf{n} $\in$\upperbound{n} steps.
+        \begin{algorithmic}
+            \Input{\variable{A} = [$a_1,a_2,...,a_n$]}, \variable{n} = Number of elements in\variable{A}
+            \Output{\variable{A'} = [$a'_1,a'_2,...,a'_n$]} with $\forall a'_i,a'_j; 1 \leq i < j\leq n:a'_i\leq a'_j$
+            \Function{Countingsort}{A, n}
+                \State$k$ = \textit{Maximum(A)}
+                \State$Counts$ = New Array of size k\Comment{Filled with zeroes}
+                \State
+                    \For{$i$ = 1...$n$}
+                        \State$value$ = A[i]
+                        \State$Counts[value]$ += 1
+                    \EndFor
+                \State[...]\Comment{End of Counting-Phase}
+            \EndFunction
+        \end{algorithmic}
+        
+        \subsection{Phase 2 \textit{(Pointing Phase)}}
+        Now that we know how many times each key exists in our array we need to determine the final position of each
+        key. The idea here is going to be that our\variable{Counts} array already holds the repsecive keys in a sorted
+        order. The only thing missing is the respective offsets in the sorted array.
+        
+        Let $k_1, k_2,...,k_n=\textbf{k}$ be the possible keys going by\variable{Counts} then \variable{Counts($k_i$)}
+        represents the remaining numbers of elements of value $k_i$ with $1 \leq i \leq \textbf{n}$. After \textit{\textbf{Phase 1}} these represent the exact counts for each key. For simplicity lets assume that
+        every key $k_i$ exists at least once in our input. The lowest key $k_1$ obviously sits at the very beginning
+        of the final array. The first element representing the the second lowest key $k_2$ sits at the next position
+        after the last element of $k_1$. This pattern applies for every pair of key $k_i,k_j$ with $k_i < k_j$.
+        
+        To retreive a list of final positions after \textit{\textbf{Phase 1}} we need to produce...
+        \begin{center}
+            \variable{Counts($k_i$)}= $\sum_{i=1}^{i-1}\variable{Counts(i)}$
+        \end{center}
+
+        The fact that we potentially have no occurences for some of these keys does nothing to the overall idea
+        of this pointers adjustment because they will have an initial value of zero and therefore do nothing in
+        the sums portraied above. Recursively this whole setup boils down to...
+        \begin{center}
+            \variable{Counts(i)}= $\variable{Counts(i)} + \variable{Counts(i-1)}$
+        \end{center}
+        ... beginning from the lowest key going through to the highest key.
+        \begin{algorithmic}
+            \Function{Countingsort}{A, n}
+                \State[...]\Comment{End of Counting-Phase}
+                \State
+                    \For{$i$ = 2...$k$}
+                        \State$Counts[i]$ += $Counts[i - 1]$
+                    \EndFor
+                \State[...]\Comment{End of Pointing-Phase}
+            \EndFunction
+        \end{algorithmic}
+        
+        \subsection{Phase 3 \textit{(Sorting Phase)}}
+        The final part of the algorithms is copying the elements to the respective positions that we now hold in our
+        \variable{Counts} array. For that part we go over our input elements another time and for each element we retreive their final position from\variable{Counts}. Finally we copy the element over to the retreived postion
+        in a array we call\variable{Result}of length \textbf{n}. This yeilds the following pattern...
+        \begin{center}
+            \variable{Result[Counts(x)]}=\variable{x}\goodbreak
+            \variable{Counts(x)} =\variable{Counts(x)} - 1
+        \end{center}
+        \begin{algorithmic}
+            \Function{Countingsort}{A, n}
+                \State[...]\Comment{End of Pointing-Phase}
+                \State$A'$ = New Array of size $n$
+                \State
+                    \For{$i$ = $n$...1}
+                        \State$value = A[i]$
+                        \State$position = Counts[value]$
+                        \State$A'[position] = value$
+                        \State$Counts[value]$ -= 1
+                    \EndFor
+                \Statep{\Return{Test}}
+            \EndFunction
+        \end{algorithmic}
+        \newpage
+        \subsection{Pseudocode(s)}
+        \begin{algorithmic}
+            \Input{\variable{A} = [$a_1,a_2,...,a_n$]}, \variable{n} = Number of elements in\variable{A}
+            \Output{\variable{A'} = [$a'_1,a'_2,...,a'_n$]} with $\forall a'_i,a'_j; 1 \leq i < j\leq n:a'_i\leq a'_j$
+            \Function{Countingsort}{A, n}
+                \State$k$ = \textit{Maximum(A)}
+                \State$Counts$ = New Array of size k\Comment{Filled with zeroes}
+                \State
+                    \For{$i$ = 1...$n$}
+                        \State$value$ = A[i]
+                        \State$Counts[value]$ += 1
+                    \EndFor
+                \State
+                    \For{$i$ = 2...$k$}
+                        \State$Counts[i]$ += $Counts[i - 1]$
+                    \EndFor
+                \State$A'$ = New Array of size $n$
+                \State
+                    \For{$i$ = $n$...1}
+                        \State$value = A[i]$
+                        \State$position = Counts[value]$
+                        \State$A'[position] = value$
+                        \State$Counts[value]$ -= 1
+                    \EndFor
+                \Statep{\Return{Test}}
+            \EndFunction
+        \end{algorithmic}
+        
+    \newpage
+    \section{Implementations}
+        \implementationfromfile{Python}{Python/code.py}{This code represents and implementation in Python. It is
+        called \textit{'advanced Countingsort'} because it can already deal with negative values. The basic concept
+        however is the same since we only need to normalize the values of our input data to zero which is a linear
+        projection that persists topology.}
+\end{document}
