@@ -11,5 +11,10 @@ boundary in sorting. One way to reach that runtime is an implementation of
 **Countingsort**
 ###### Input
 Since we are literaly talking about *counting* something we obvously need some sort of numerical values. Optionally we could also pass the maximum value among our elements since we will need it later on.
-This however can easily be
+This however can easily be determined at runtime in linear time so we take this as given. Given the nature of how **Countingsort** actually sorts all values passed must be (ideally positive) integers. So the input boils down to:
+- ***A*** = *A list of integers*
+- ***k*** = *The maximum value an input element can have* (optional)
+- ***n*** = *The number of elements in our array* (optional)
+###### Output
+The output obviously is the input elements in a topological order.
 ### Solution
