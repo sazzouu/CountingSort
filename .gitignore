@@ -1,4 +1,8 @@
 *.txt
+*.toc
+*.aux
+*.log
+*.tex
 
 *.exe
 *.sh
